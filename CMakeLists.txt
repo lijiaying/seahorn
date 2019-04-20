@@ -49,7 +49,7 @@ if (GIT_FOUND)
   add_custom_target (sea-dsa-git
     ${GIT_EXECUTABLE} clone ${SEA_DSA_REPO} ${CMAKE_SOURCE_DIR}/sea-dsa)
   add_custom_target (crab-llvm-git
-    ${GIT_EXECUTABLE} clone -b dev ${CRAB_LLVM_REPO} ${CMAKE_SOURCE_DIR}/crab-llvm)
+    ${GIT_EXECUTABLE} clone -b llvm-3.8 ${CRAB_LLVM_REPO} ${CMAKE_SOURCE_DIR}/crab-llvm)
   add_custom_target (extra
     ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_LIST_FILE}
     DEPENDS seahorn-llvm-git llvm-dsa-git sea-dsa-git crab-llvm-git
@@ -378,6 +378,15 @@ if (IS_DIRECTORY ${CMAKE_SOURCE_DIR}/sea-dsa AND
 else()
   message (WARNING "No SEA DSA found in ${CMAKE_SOURCE_DIR}/sea-dsa. Run\n\tcmake --build . --target extra && cmake ${CMAKE_SOURCE_DIR}")
   return()
+endif()
+
+if (IS_DIRECTORY ${CMAKE_SOURCE_DIR}/crab-llvm AND
+    EXISTS ${CMAKE_SOURCE_DIR}/crab-llvm/CMakeLists.txt)
+  add_subdirectory(${CMAKE_SOURCE_DIR}/crab-llvm)
+  set (HAVE_CRAB_LLVM TRUE)
+  include_directories (${CRABLLVM_INCLUDE_DIRS})  
+else()
+  message (WARNING "No CRAB-LLVM found in ${CMAKE_SOURCE_DIR}/crab-llvm. Run\n\tcmake --build . --target extra && cmake ${CMAKE_SOURCE_DIR}")
 endif()
 
 ### add our include directories to the front, overriding directories
