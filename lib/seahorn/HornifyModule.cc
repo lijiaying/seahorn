@@ -87,6 +87,11 @@ AbstractFunctions("horn-abstract",
 
 namespace seahorn
 {
+#define myred "\e[31m"
+#define mygreen "\e[32m"
+#define myyellow "\e[33m"
+#define myblue "\e[34m"
+#define mywhite "\e[0m"
   char HornifyModule::ID = 0;
 
   struct FunctionNameMatcher :
@@ -126,6 +131,7 @@ namespace seahorn
   bool HornifyModule::runOnModule (Module &M)
   {
     ScopedStats _st ("HornifyModule");
+	llvm::errs() << myyellow << " --> return runOnModule\n" << mywhite;
 
     bool Changed = false;
     m_td = &M.getDataLayout();
@@ -140,8 +146,11 @@ namespace seahorn
     if (Step == hm_detail::CLP_SMALL_STEP || 
         Step == hm_detail::CLP_FLAT_SMALL_STEP)
       m_sem.reset (new ClpSmallSymExec (m_efac, *this, M.getDataLayout(), TL));
-    else
+    else {
+	llvm::errs() << myred << "-> ufo small sym exec\n" << mywhite;
       m_sem.reset (new UfoSmallSymExec (m_efac, *this, M.getDataLayout(), TL, abs_fns));
+	llvm::errs() << myred << "<- ufo small sym exec\n" << mywhite;
+	}
 
     Function *main = M.getFunction ("main");
     if (!main)
@@ -159,6 +168,7 @@ namespace seahorn
     Function* failureFn = M.getFunction ("seahorn.fail");
     if (!canFail)
     {
+	  llvm::errs() << mygreen << " -> can not fail @" << __FILE__ << " L" << __LINE__ << "\n" << mywhite;
       for (auto &I : boost::make_iterator_range (inst_begin(*main),
                                                  inst_end (*main)))
       {
@@ -174,6 +184,7 @@ namespace seahorn
     // --- we ask the can-fail analysis if no function can fail.
     if (!canFail)
     {
+	  llvm::errs() << mygreen << " -> can not fail @" << __FILE__ << " L" << __LINE__ << "\n" << mywhite;
       Function* errorFn = M.getFunction ("verifier.error");
       for (auto &f : M)
       {
@@ -186,6 +197,7 @@ namespace seahorn
     // --- no function can fail so the program is trivially safe.
     if (!canFail && !NoVerification)
     {
+	  llvm::errs() << mygreen << " -> can not fail & No verification @" << __FILE__ << " L" << __LINE__ << "\n" << mywhite;
       errs () << "WARNING: no assertion was found ";
       errs () << "so either program does not have assertions or frontend discharged them.\n";
       m_db.addQuery (mk<FALSE> (m_efac));
@@ -195,6 +207,7 @@ namespace seahorn
     
     if (!NoVerification)
     {
+	  llvm::errs() << mygreen << " -> No verification @" << __FILE__ << " L" << __LINE__ << "\n" << mywhite;
       // --- expensive check that iterates over all callsites 
       Function* errorFn = M.getFunction ("verifier.error");            
       for (auto &fn: M)
@@ -214,6 +227,7 @@ namespace seahorn
     // create FunctionInfo for verifier.error() function
     if (Function* errorFn = M.getFunction ("verifier.error"))
     {
+	  llvm::errs() << mygreen << " -> Get to verifier.error @" << __FILE__ << " L" << __LINE__ << "\n" << mywhite;
       FunctionInfo &fi = m_sem->getFunctionInfo (*errorFn);
       Expr boolSort = sort::boolTy (m_efac);
       ExprVector sorts (4, boolSort);
@@ -231,6 +245,7 @@ namespace seahorn
 
       ExprSet allVars;
 
+	  llvm::errs() << myyellow << "  --> add rule\n" << mywhite;
       ExprVector args {falseE, falseE, falseE};
       m_db.addRule (allVars, bind::fapp (fi.sumPred, args));
 
@@ -243,15 +258,18 @@ namespace seahorn
       args = {trueE, trueE, trueE} ;
       m_db.addRule (allVars, bind::fapp (fi.sumPred, args));
 
+	  llvm::errs() << myyellow << "  --> bind const\n" << mywhite;
       args [0] = bind::boolConst (mkTerm (std::string ("arg.0"), m_efac));
       args [1] = bind::boolConst (mkTerm (std::string ("arg.1"), m_efac));
       args [2] = bind::boolConst (mkTerm (std::string ("arg.2"), m_efac));
+	  llvm::errs() << myyellow << "  --> add constraint\n" << mywhite;
       m_db.addConstraint (bind::fapp (fi.sumPred, args),
                           mk<AND> (mk<OR> (mk<NEG> (args [0]), args [2]),
                                    mk<OR> (args [0], mk<EQ> (args [1], args [2]))));
     }
 
 
+	llvm::errs() << myyellow << "  --> go to SCC \n" << mywhite;
     CallGraph &CG = getAnalysis<CallGraphWrapperPass> ().getCallGraph ();
     for (auto it = scc_begin (&CG); !it.isAtEnd (); ++it)
     {
@@ -283,6 +301,7 @@ namespace seahorn
 
     if (!m_db.hasQuery ())
     {
+	  llvm::errs() << myyellow << "  --> not has query\n" << mywhite;
       // --- This may happen if the exit block of main is unreachable
       //     but still the main function can fail.
       m_db.addQuery (mk<TRUE> (m_efac));
@@ -336,6 +355,7 @@ namespace seahorn
             c. query is whether main gets to its return location (same as UFO)
 
     */
+	llvm::errs() << myyellow << " <-- return runOnModule\n" << mywhite;
     return Changed;
   }
 
@@ -344,6 +364,7 @@ namespace seahorn
     // -- skip functions without a body
     if (F.isDeclaration () || F.empty ()) return false;
     LOG("horn-step", errs () << "HornifyModule: runOnFunction: " << F.getName () << "\n");
+	llvm::errs() << myred << " --> run on function [" << F.getName() << "]\n" << mywhite;
 
 
 
@@ -380,6 +401,7 @@ namespace seahorn
     /// -- hornify function
     hf->runOnFunction (F);
 
+	llvm::errs() << myred << " <-- run on function [" << F.getName() << "]\n" << mywhite;
     return false;
   }
 

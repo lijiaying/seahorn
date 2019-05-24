@@ -2,6 +2,12 @@
 
 using namespace seahorn;
 
+#define RED "\e[31m"
+#define GREEN "\e[32m"
+#define YELLOW "\e[33m"
+#define BLUE "\e[34m"
+#define NORMAL "\e[0m"
+
 namespace 
 {
   struct SymExecBase
@@ -29,7 +35,9 @@ namespace
   {
     SymExecVisitor (SymStore &s, IntLightSymExec &sem) : SymExecBase (s, sem) {}
     
-    void visitInstruction (Instruction &I) {havoc (I);}
+    void visitInstruction (Instruction &I) {
+		llvm::errs() << GREEN << "visit intruction [" << I << "] @f:" << __FILE__ << "\n" << NORMAL;
+		havoc (I);}
     
     void visitPHINode (PHINode &I) {/* do nothing */}
     void visitReturnInst (ReturnInst &I) {lookup (*I.getOperand (0));}

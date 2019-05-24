@@ -339,7 +339,9 @@ namespace seahorn
     if (ReduceWeak) params.set (":smt.arith.ignore_int", true);
     smt.set (params);
     
+	llvm::errs() << llvm::raw_ostream::RED << "-> ufo large sym exec\n" << llvm::raw_ostream::WHITE;
     UfoLargeSymExec lsem (m_sem);
+	llvm::errs() << llvm::raw_ostream::RED << "<- ufo large sym exec\n" << llvm::raw_ostream::WHITE;
     
 
     DenseSet<const BasicBlock*> reached;

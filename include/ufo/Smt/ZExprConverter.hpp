@@ -11,6 +11,11 @@
 
 namespace ufo
 {
+#define myred "\e[32m"
+#define mygreen "\e[32m"
+#define myyellow "\e[33m"
+#define myblue "\e[34m"
+#define mywhite "\e[0m"
 
   struct FailMarshal
   {
@@ -36,6 +41,14 @@ namespace ufo
   };
 
 
+#include <execinfo.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#define BT_BUF_SIZE 100
+
+
+
   template <typename M>
   struct BasicExprMarshal
   {
@@ -44,6 +57,21 @@ namespace ufo
 			    C &cache, expr_ast_map &seen)
     {
       assert (e);
+      llvm::errs () << mygreen << "--------------------------------\n " << mywhite;
+	  if (false)
+		{
+			int j, nptrs;
+			void *buffer[BT_BUF_SIZE];
+			char **strings;
+			nptrs = backtrace(buffer, BT_BUF_SIZE);
+			printf("backtrace() returned %d addresses\n", nptrs);
+			strings = backtrace_symbols(buffer, nptrs);
+			for (j = 0; strings != NULL && j < nptrs; j++)
+				printf("%s\n", strings[j]);
+			free(strings);
+		}
+      llvm::errs () << mygreen << "...............................\n " << mywhite;
+	  llvm::errs() << myblue << *e << "\n" << mywhite;
       if (isOpX<TRUE>(e)) return z3::ast (ctx, Z3_mk_true (ctx));
       if (isOpX<FALSE>(e)) return z3::ast (ctx, Z3_mk_false (ctx));
 
@@ -64,17 +92,27 @@ namespace ufo
 
       if (bind::isBVar (e))
 	{
+	    llvm::errs() << " isBVar\n";
 	  z3::ast sort (marshal (bind::type (e), ctx, cache, seen));
 	  res = Z3_mk_bound (ctx, bind::bvarId (e),
 			     reinterpret_cast<Z3_sort>
 			     (static_cast<Z3_ast> (sort)));
 	}
       else if (isOpX<INT_TY> (e))
+	  {
+	    llvm::errs() << " isOpX<INT_TY>\n";
 	res = reinterpret_cast<Z3_ast> (Z3_mk_int_sort (ctx));
+	  }
       else if (isOpX<REAL_TY> (e))
+	  {
+	    llvm::errs() << " isOpX<REAL_TY>\n";
 	res = reinterpret_cast<Z3_ast> (Z3_mk_real_sort (ctx));
+	  }
       else if (isOpX<BOOL_TY> (e))
+	  {
+	    llvm::errs() << " isOpX<BOOL_TY>\n";
 	res = reinterpret_cast<Z3_ast> (Z3_mk_bool_sort (ctx));
+	  }
       else if (isOpX<ARRAY_TY> (e))
       {
         z3::ast _idx_sort (marshal (e->left (), ctx, cache, seen));
@@ -87,10 +125,14 @@ namespace ufo
           (Z3_mk_array_sort (ctx, idx_sort, val_sort));       
       }
       else if (isOpX<BVSORT> (e))
+	{
+		llvm::errs() << " isOpX<BVSORT>\n";
         res = reinterpret_cast<Z3_ast> (Z3_mk_bv_sort (ctx, bv::width (e)));
+	}
       
       else if (isOpX<INT>(e))
 	{
+	  llvm::errs() << " isOpX<INT>\n";
 	  z3::sort sort (ctx,
 			 Z3_mk_real_sort (ctx));
 	  std::string sname = boost::lexical_cast<std::string>(e.get());
@@ -99,6 +141,7 @@ namespace ufo
 
       else if (isOpX<MPQ>(e))
 	{
+	  llvm::errs() << " isOpX<MPQ>\n";
 	  const MPQ& op = dynamic_cast<const MPQ&>(e->op ());
 
 	  z3::sort sort (ctx, Z3_mk_real_sort (ctx));
@@ -107,6 +150,7 @@ namespace ufo
 	}
       else if (isOpX<MPZ>(e))
 	{
+	  llvm::errs() << " isOpX<MPZ>\n";
 	  const MPZ& op = dynamic_cast<const MPZ&>(e->op ());
 	  z3::sort sort (ctx, Z3_mk_int_sort (ctx));
 	  std::string sname = boost::lexical_cast<std::string>(op.get());
@@ -114,6 +158,7 @@ namespace ufo
 	}
       else if (bv::is_bvnum (e))
       {
+	    llvm::errs() << " is_bvnum\n";
         z3::sort sort (ctx, Z3_mk_bv_sort (ctx, bv::width (e->arg (1))));
         const MPZ& num = dynamic_cast<const MPZ&> (e->arg (0)->op ());
         
@@ -122,6 +167,7 @@ namespace ufo
       }
       else if (bind::isBoolVar (e))
 	{
+	    llvm::errs() << " isBoolVar\n";
 	  // XXX The name 'edge' is misleading. Should be changed.
 	  Expr edge = bind::name (e);
           std::string svar;
@@ -139,6 +185,7 @@ namespace ufo
 	}
       else if (bind::isIntVar (e))
 	{
+	    llvm::errs() << " isIntlVar\n";
 	  Expr name = bind::name (e);
           std::string sname;
 	  if (isOpX<STRING> (name))
@@ -152,6 +199,7 @@ namespace ufo
 	}
       else if (bind::isRealVar (e))
 	{
+	    llvm::errs() << " isReallVar\n";
 	  Expr name = bind::name (e);
           std::string sname;
 	  if (isOpX<STRING> (name))
@@ -167,6 +215,7 @@ namespace ufo
       /** function declaration */
       else if (bind::isFdecl (e))
 	{
+	  llvm::errs() << " is Function Declaration.\n";
 	  z3::ast_vector pinned (ctx);
 	  pinned.resize (e->arity ());
 	  std::vector<Z3_sort> domain (e->arity ());
@@ -205,6 +254,7 @@ namespace ufo
       else if (bind::isFapp (e))
 	{
 
+	  llvm::errs() << " is Function Application.\n";
 	  z3::func_decl zfdecl (ctx,
 				reinterpret_cast<Z3_func_decl>
 				(static_cast<Z3_ast>

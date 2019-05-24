@@ -107,7 +107,7 @@ def add_tmp_dir_args (ap):
     ap.add_argument ('--save-temps', '--keep-temps',
                      dest="save_temps",
                      help="Do not delete temporary files",
-                     action="store_true", default=True)
+                     action="store_true", default=False)
     ap.add_argument ('--temp-dir', dest='temp_dir', metavar='DIR',
                      help="Temporary directory", default=None)
     return ap
@@ -132,9 +132,6 @@ class CliCmd (object):
         return out_file
 
     def main (self, argv):
-        print('')
-        print('-' * 80)
-        print('[Clicmd] run main function with argv: ' + str(argv))
         import argparse
         ap = argparse.ArgumentParser (prog=self.name,
                                       description=self.help,
@@ -176,9 +173,7 @@ class AgregateCmd (CliCmd):
         return argp
 
     def run (self, args=None, extra=[]):
-        print('[AgregateCmd] actual run func with args: ' + str(args) + ' extra: ' + str(extra))
         return args.func (args, extra)
-
 class _SeqCmdHelpAction(argparse.Action):
     def __init__(self,
                  option_strings,
@@ -260,10 +255,8 @@ class ExtCmd (LimitedCmd):
         self.quiet = quiet
 
     def run (self, args, extra):
-        print('Exe: ' + self.name)
         argv = [self.name]
         argv.extend (extra)
-        print('argv: ' + str(extra))
 
         if not self.quiet: print ' '.join (argv)
 

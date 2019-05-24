@@ -47,6 +47,7 @@ namespace seahorn
   
   bool HornWrite::runOnModule (Module &M)
   {
+	// llvm::errs() << "HORN WRITE\n";
     ScopedStats _st_("HornWrite");
     HornifyModule &hm = getAnalysis<HornifyModule> ();
     HornClauseDB &db  = hm.getHornClauseDB ();
@@ -90,6 +91,7 @@ namespace seahorn
       std::string version ("SeaHorn v.");
       version += SEAHORN_VERSION_INFO;
       setInfo (m_out, "authors", version);
+	  m_out << "; for debug\n";
       
       if (HornClauseFormat == PURESMT2 || !InternalWriter)
         m_out << fp.toString () << "\n";
