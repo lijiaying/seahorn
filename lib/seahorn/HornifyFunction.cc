@@ -27,6 +27,12 @@ ReduceWeak ("horn-reduce-weakly",
 #include "ufo/Stats.hh"
 namespace seahorn
 {
+#define myred "\e[31m"
+#define mygreen "\e[32m"
+#define myyellow "\e[33m"
+#define myblue "\e[34m"
+#define mywhite "\e[0m"
+#define mybold "\e[1m"
 
   void HornifyFunction::extractFunctionInfo (const BasicBlock &BB)
   {
@@ -151,6 +157,7 @@ namespace seahorn
   {
 
     if (m_sem.isAbstracted(F)) return;
+		errs () << myred << "   >>>> SmallHornifyFunction[" << F.getName() << "] ---------------------- ##L " << __LINE__ << "-----------------\n" << mywhite;
     
     const BasicBlock *exit = findExitBlock (F);
     if (!exit)
@@ -163,19 +170,30 @@ namespace seahorn
     ExprVector sorts;
     
     const LiveSymbols &ls = m_parent.getLiveSybols (F);
+		int i = 0;
+    for (auto &BB : F)
+			errs () << mybold << mygreen << " # " << i++ << "-----------------------" <<  mywhite << myblue << BB << mywhite << "\n";
 
+		errs () << myyellow << ".................... adding predicates: ....................."<< mywhite << "\n";
+		i=0;
     for (auto &BB : F)
     {
+			errs () << mybold << mygreen << " #" << i++ << "-- " << mywhite;
+			// errs () << myblue << BB << mywhite;
       // create predicate for the basic block
       Expr decl = m_parent.bbPredicate (BB);
+			errs () << mygreen << "add predicate " << *decl << mywhite << "\n";
       // register with fixedpoint
       m_db.registerRelation (decl);
+			// errs () << myblue << "FUNCTION: " << __FUNCTION__ << " File: " << __FILE__ << " Line: " << __LINE__ << "\n" << mywhite;
       
       // -- attempt to extract FunctionInfo record from the current basic block
       // -- only succeeds if the current basic block is the last one
       // -- also constructs summary predicates
       if (m_interproc) extractFunctionInfo (BB);
     }
+	  errs () << "\n";
+		// errs () << m_db << "\n";
 
     BasicBlock &entry = F.getEntryBlock ();
     ExprSet allVars;
@@ -186,10 +204,17 @@ namespace seahorn
     rule = boolop::limp (boolop::lneg (s.read (m_sem.errorFlag (entry))), rule);
     m_db.addRule (allVars, rule);
     allVars.clear ();
+
+		errs () << mybold << mygreen << "-------------------------------------------------------------------------------------------------" << mywhite << "\n";
       
+		errs () << myyellow << ".................... adding rules ....................."<< mywhite << "\n";
+
     ExprVector side;
+		i=0;
     for (auto &BB : F)
     {
+			errs () << mybold << mygreen << " #" << i++ << "-- " << mywhite;
+			// errs () << myblue << BB << mywhite;
       const BasicBlock *bb = &BB;
       for (const BasicBlock *dst : succs (*bb))
       {
@@ -197,7 +222,6 @@ namespace seahorn
         s.reset ();
         side.clear ();
         args.clear ();
-        
         
         const ExprVector &live = ls.live (bb);
         for (const Expr &v : live) allVars.insert (s.read (v));
@@ -208,8 +232,7 @@ namespace seahorn
 
         Expr tau = mknary<AND> (mk<TRUE> (m_efac), side);
 
-        expr::filter (tau, bind::IsConst(), 
-                      std::inserter (allVars, allVars.begin ()));
+        expr::filter (tau, bind::IsConst(), std::inserter (allVars, allVars.begin ()));
         for (const Expr &v : ls.live (dst)) args.push_back (s.read (v));
         // -- use a mutable gate to put everything together
         expr::filter (mknary<OUT_G> (args), bind::IsConst(),
@@ -220,25 +243,34 @@ namespace seahorn
         
         LOG("seahorn", errs() << "Adding rule : " 
             << *mk<IMPL> (boolop::land (pre, tau), post) << "\n";);
+				errs () << mygreen << "add rule : " << *mk<IMPL> (boolop::land (pre, tau), post) << mywhite << "\n";
         m_db.addRule (allVars, boolop::limp (boolop::land (pre, tau), post));
       }
+
+			// errs () << myblue << "FUNCTION: " << __FUNCTION__ << " File: " << __FILE__ << " Line: " << __LINE__ << "\n" << mywhite;
     }
+	  errs () << "\n";
+		// errs () << m_db << "\n";
 
     allVars.clear ();
     side.clear ();
     s.reset ();
     
-    
+		errs () << mybold << mygreen << "-------------------------------------------------------------------------------------------------" << mywhite << "\n";
+		errs () << myyellow << "....................adding target-based rules ....................."<< mywhite << "\n";
+
     // Add error flag exit rules
     // bb (err, V) & err -> bb_exit (err , V)
     assert(exit);
 
+    i=0; 
     for (auto &BB : F)
     {
+			errs () << mybold << mygreen << " #" << i++ << "-- " << mywhite;
       if (&BB == exit) continue;
+			// errs () << myblue << BB << mywhite;
       
-      // XXX Can optimize. Only need the rules for BBs that trip the
-      // error flag (directly or indirectly)
+      // XXX Can optimize. Only need the rules for BBs that trip the error flag (directly or indirectly)
       s.reset ();
       allVars.clear ();
       args.clear ();
@@ -251,17 +283,31 @@ namespace seahorn
       Expr post = 
         s.eval (bind::fapp (m_parent.bbPredicate (*exit), ls.live (exit)));
       m_db.addRule (allVars, boolop::limp (pre, post));
+			errs () << mygreen << "add rule : " << *mk<IMPL>(pre, post) << mywhite << "\n";
+			// errs () << myblue << "FUNCTION: " << __FUNCTION__ << " File: " << __FILE__ << " Line: " << __LINE__ << "\n" << mywhite;
     }
+	  errs () << "\n";
+		// errs () << m_db << "\n";
     
+		errs () << mybold << mygreen << "-------------------------------------------------------------------------------------------------" << mywhite << "\n";
+		errs () << myyellow << "....................adding query ....................."<< mywhite << "\n";
     if (F.getName ().equals ("main") && ls.live(exit).size () == 1)
+		{
+			errs () << "option1: main function && ls.live(exit).size == 1\n";
       m_db.addQuery (bind::fapp (m_parent.bbPredicate(*exit), mk<TRUE> (m_efac)));
+			errs () << mygreen << "add rule : " << *mk<IMPL>(m_parent.bbPredicate(*exit), mk<TRUE>(m_efac)) << mywhite << "\n";
+		}
     else if (F.getName ().equals ("main") && ls.live (exit).size () == 0)
+		{
+			errs () << "option2: main function && ls.live(exit).size == 0\n";
       m_db.addQuery (bind::fapp (m_parent.bbPredicate(*exit)));
+			errs () << mygreen << "add rule : " << *m_parent.bbPredicate(*exit) << mywhite << "\n";
+		}
     else if (m_interproc)
     {
+			errs () << "option3: the summary rule\n";
       // the summary rule
-      // exit(live_at_exit) & !error.flag ->
-      //                  summary(true, false, false, regions, arguments, globals, return)
+      // exit(live_at_exit) & !error.flag -> summary(true, false, false, regions, arguments, globals, return)
       
       const ExprVector &live = ls.live (exit);
       for (const Expr &v : live) allVars.insert (s.read (v));
@@ -285,14 +331,16 @@ namespace seahorn
       postArgs [2] = mk<TRUE> (m_efac);
       post = bind::fapp (fi.sumPred, postArgs);
       m_db.addRule (allVars, boolop::limp (pre, post));
+			errs () << mygreen << "add rule : " << *mk<IMPL>(pre, post) << mywhite << "\n";
     }
     else if (!exit & m_interproc) assert (0);
-    
+		errs () << myred << "   <<<< Done SmallHornifyFunction[" << F.getName() << "] ---------------------- ##L " << __LINE__ << "-----------------\n" << mywhite;
   }
 
   void LargeHornifyFunction::runOnFunction (Function &F)
   {
     ScopedStats _st_("LargeHornifyFunction");
+		errs () << "   >>>> LargeHornifyFunction[" << F.getName() << "] ---------------------- ##L " << __LINE__ << "-----------------\n";
 
     if (m_sem.isAbstracted(F)) return;    
     
@@ -339,9 +387,9 @@ namespace seahorn
     if (ReduceWeak) params.set (":smt.arith.ignore_int", true);
     smt.set (params);
     
-	llvm::errs() << llvm::raw_ostream::RED << "-> ufo large sym exec\n" << llvm::raw_ostream::WHITE;
+	errs () << llvm::raw_ostream::RED << "-> ufo large sym exec\n" << llvm::raw_ostream::WHITE;
     UfoLargeSymExec lsem (m_sem);
-	llvm::errs() << llvm::raw_ostream::RED << "<- ufo large sym exec\n" << llvm::raw_ostream::WHITE;
+	errs () << llvm::raw_ostream::RED << "<- ufo large sym exec\n" << llvm::raw_ostream::WHITE;
     
 
     DenseSet<const BasicBlock*> reached;
@@ -515,6 +563,7 @@ namespace seahorn
     }
     else if (!exit & m_interproc) assert (0);
   
+		errs () << "   <<<< Done HornifyFunction[" << F.getName() << "] ---------------------- ##L " << __LINE__ << "-----------------\n";
     LOG ("reduce", errs () << "Done HornifyFunction: " << F.getName () << "\n";);
   }
 
