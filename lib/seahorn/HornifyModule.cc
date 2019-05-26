@@ -445,7 +445,12 @@ c. query is whether main gets to its return location (same as UFO)
 	{
 		const BasicBlock *bb = &BB;
 		Expr res = m_bbPreds [bb];
-		if (res) return res;
+		if (res) 
+		{
+			// errs () << "predicate is already generated!" << myblue << BB << "\n" << mywhite << *res << "\n";
+			return res;
+		}
+		// errs () << myred << "try to get predicate for bb:\n" << BB << mywhite;
 
 
 		const ExprVector &lv = live (bb);
@@ -454,6 +459,7 @@ c. query is whether main gets to its return location (same as UFO)
 
 		for (auto &v : lv)
 		{
+			errs () << "expr: " << *v << " :type " << *bind::typeOf(v) << "\n";
 			assert (bind::isFapp (v));
 			assert (bind::domainSz (bind::fname (v)) == 0);
 			sorts.push_back (bind::typeOf (v));

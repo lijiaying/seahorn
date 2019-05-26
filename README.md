@@ -233,3 +233,10 @@ the program is unsafe. `sassert()` method is defined in
 * [Arie Gurfinkel](arieg.bitbucket.org)
 * [Jorge Navas](http://jorgenavas.github.io/)
 * [Temesghen Kahsai](http://www.lememta.info/)
+
+# Command #
+* generate smt2lib file
+./run/bin/seahorn --keep-shadows=true --horn-no-verif -horn-inter-proc -horn-sem-lvl=reg --horn-step=small /tmp/sea-YIMzAh/mytest3.pp.ms.o.bc -o test.smt2
+
+./run/bin/seahorn --keep-shadows=true --horn-no-verif -horn-inter-proc -horn-sem-lvl=reg --horn-step=small /tmp/sea-YIMzAh/mytest3.pp.ms.o.bc -o test.smt2 --debug-pass=Structure
+sea horn test.true.bc --step=small -o test.true.smt

@@ -91,12 +91,18 @@ namespace seahorn
       std::string version ("SeaHorn v.");
       version += SEAHORN_VERSION_INFO;
       setInfo (m_out, "authors", version);
-	  m_out << "; for debug\n";
+	  	m_out << "; for debug\n";
       
       if (HornClauseFormat == PURESMT2 || !InternalWriter)
+			{
+	  		m_out << "; PURESMT2 || !InternalWriter --> use fp.toString()\n";
         m_out << fp.toString () << "\n";
+			}
       else
+			{
+	  		m_out << "; --> use fp\n";
         m_out << fp << "\n";
+			}
     }
     
     m_out.flush ();

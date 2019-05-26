@@ -155,7 +155,6 @@ namespace seahorn
   
   void SmallHornifyFunction::runOnFunction (Function &F)
   {
-
     if (m_sem.isAbstracted(F)) return;
 		errs () << myred << "   >>>> SmallHornifyFunction[" << F.getName() << "] ---------------------- ##L " << __LINE__ << "-----------------\n" << mywhite;
     
@@ -169,6 +168,7 @@ namespace seahorn
     DenseMap<const BasicBlock*, Expr> pred;
     ExprVector sorts;
     
+		// errs () << "Hornify Module: " << *m_parent << "\n";
     const LiveSymbols &ls = m_parent.getLiveSybols (F);
 		int i = 0;
     for (auto &BB : F)
@@ -178,11 +178,10 @@ namespace seahorn
 		i=0;
     for (auto &BB : F)
     {
-			errs () << mybold << mygreen << " #" << i++ << "-- " << mywhite;
-			// errs () << myblue << BB << mywhite;
+			// errs () << mybold << mygreen << " #" << i++ << "-- " << mywhite;
       // create predicate for the basic block
       Expr decl = m_parent.bbPredicate (BB);
-			errs () << mygreen << "add predicate " << *decl << mywhite << "\n";
+			// errs () << mygreen << "add predicate " << *decl << mywhite << "\n";
       // register with fixedpoint
       m_db.registerRelation (decl);
 			// errs () << myblue << "FUNCTION: " << __FUNCTION__ << " File: " << __FILE__ << " Line: " << __LINE__ << "\n" << mywhite;
@@ -192,7 +191,7 @@ namespace seahorn
       // -- also constructs summary predicates
       if (m_interproc) extractFunctionInfo (BB);
     }
-	  errs () << "\n";
+	  // errs () << "\n";
 		// errs () << m_db << "\n";
 
     BasicBlock &entry = F.getEntryBlock ();
@@ -213,8 +212,7 @@ namespace seahorn
 		i=0;
     for (auto &BB : F)
     {
-			errs () << mybold << mygreen << " #" << i++ << "-- " << mywhite;
-			// errs () << myblue << BB << mywhite;
+			// errs () << mybold << mygreen << " #" << i++ << "-- " << mywhite;
       const BasicBlock *bb = &BB;
       for (const BasicBlock *dst : succs (*bb))
       {
@@ -241,15 +239,14 @@ namespace seahorn
         Expr post;
         post = s.eval (bind::fapp (m_parent.bbPredicate (*dst), ls.live (dst)));
         
-        LOG("seahorn", errs() << "Adding rule : " 
-            << *mk<IMPL> (boolop::land (pre, tau), post) << "\n";);
-				errs () << mygreen << "add rule : " << *mk<IMPL> (boolop::land (pre, tau), post) << mywhite << "\n";
+        LOG("seahorn", errs() << "Adding rule : " << *mk<IMPL> (boolop::land (pre, tau), post) << "\n";);
+				// errs () << mygreen << "add rule : " << *mk<IMPL> (boolop::land (pre, tau), post) << mywhite << "\n";
         m_db.addRule (allVars, boolop::limp (boolop::land (pre, tau), post));
       }
 
 			// errs () << myblue << "FUNCTION: " << __FUNCTION__ << " File: " << __FILE__ << " Line: " << __LINE__ << "\n" << mywhite;
     }
-	  errs () << "\n";
+	  // errs () << "\n";
 		// errs () << m_db << "\n";
 
     allVars.clear ();
@@ -266,7 +263,7 @@ namespace seahorn
     i=0; 
     for (auto &BB : F)
     {
-			errs () << mybold << mygreen << " #" << i++ << "-- " << mywhite;
+			// errs () << mybold << mygreen << " #" << i++ << "-- " << mywhite;
       if (&BB == exit) continue;
 			// errs () << myblue << BB << mywhite;
       
@@ -283,10 +280,10 @@ namespace seahorn
       Expr post = 
         s.eval (bind::fapp (m_parent.bbPredicate (*exit), ls.live (exit)));
       m_db.addRule (allVars, boolop::limp (pre, post));
-			errs () << mygreen << "add rule : " << *mk<IMPL>(pre, post) << mywhite << "\n";
+			// errs () << mygreen << "add rule : " << *mk<IMPL>(pre, post) << mywhite << "\n";
 			// errs () << myblue << "FUNCTION: " << __FUNCTION__ << " File: " << __FILE__ << " Line: " << __LINE__ << "\n" << mywhite;
     }
-	  errs () << "\n";
+	  // errs () << "\n";
 		// errs () << m_db << "\n";
     
 		errs () << mybold << mygreen << "-------------------------------------------------------------------------------------------------" << mywhite << "\n";
@@ -387,9 +384,9 @@ namespace seahorn
     if (ReduceWeak) params.set (":smt.arith.ignore_int", true);
     smt.set (params);
     
-	errs () << llvm::raw_ostream::RED << "-> ufo large sym exec\n" << llvm::raw_ostream::WHITE;
+		errs () << llvm::raw_ostream::RED << "-> ufo large sym exec\n" << llvm::raw_ostream::WHITE;
     UfoLargeSymExec lsem (m_sem);
-	errs () << llvm::raw_ostream::RED << "<- ufo large sym exec\n" << llvm::raw_ostream::WHITE;
+		errs () << llvm::raw_ostream::RED << "<- ufo large sym exec\n" << llvm::raw_ostream::WHITE;
     
 
     DenseSet<const BasicBlock*> reached;
@@ -400,8 +397,7 @@ namespace seahorn
       {
         if (reached.count (&cp.bb ()) <= 0) continue;
         
-        for (const CpEdge *edge : boost::make_iterator_range (cp.succ_begin (),
-                                                              cp.succ_end ()))
+        for (const CpEdge *edge : boost::make_iterator_range (cp.succ_begin (), cp.succ_end ()))
         {
           allVars.clear ();
           args.clear ();
@@ -439,7 +435,6 @@ namespace seahorn
               if (!bind::isFapp (e) || isConst (e)) smt.assertExpr (e);
             }
             LOG ("reduce",
-                 
                  std::error_code EC;
                  raw_fd_ostream file ("/tmp/edge.smt2", EC, sys::fs::F_Text);
                  if (!EC)
